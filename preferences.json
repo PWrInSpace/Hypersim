@@ -1,0 +1,105 @@
+{
+    "units": {
+        "length": "mm",
+        "mass": "kg",
+        "pressure": "bar",
+        "velocity": "m/s",
+        "regression": "mm/s",
+        "volume": "l",
+        "force": "N",
+        "impulse": "Ns",
+        "density": "kg/m^3",
+        "flow": "g/s",
+        "flux": "kg/m^2*s",
+        "a": "mm*m^2/kg",
+        "-": "-",
+        "time": "s"
+    },
+    "plot": {
+        "chamber_pressure": {
+            "show": true,
+            "label": "Chamber pressure",
+            "type": "pressure"
+        },
+        "thrust": {
+            "show": false,
+            "label": "Thrust",
+            "type": "force"
+        },
+        "ox_mass": {
+            "show": false,
+            "label": "Oxidizer mass",
+            "type": "mass"
+        },
+        "fuel_mass": {
+            "show": false,
+            "label": "Fuel mass",
+            "type": "mass"
+        },
+        "ox_flow": {
+            "show": true,
+            "label": "Oxidizer flow rate",
+            "type": "flow"
+        },
+        "fuel_flow": {
+            "show": true,
+            "label": "Fuel flow rate",
+            "type": "flow"
+        },
+        "mass_flow": {
+            "show": false,
+            "label": "Propellant flow rate",
+            "type": "flow"
+        },
+        "ox_flux": {
+            "show": false,
+            "label": "Oxidizer flux",
+            "type": "flux"
+        },
+        "fuel_flux": {
+            "show": false,
+            "label": "Fuel flux",
+            "type": "flux"
+        },
+        "mass_flux": {
+            "show": false,
+            "label": "Total flux",
+            "type": "flux"
+        },
+        "regression_rate": {
+            "show": false,
+            "label": "Regression rate",
+            "type": "regression"
+        },
+        "port_diameter": {
+            "show": false,
+            "label": "Port diameter",
+            "type": "length"
+        },
+        "exhoust_pressure": {
+            "show": false,
+            "label": "Exhoust pressure",
+            "type": "pressure" 
+        },
+        "cf": {
+            "show": false,
+            "label": "Thrust coefficient",
+            "type": "-"
+        },
+        "pressure_thrust": {
+            "show": false,
+            "label": "Pressure thrust",
+            "type": "force"
+        },
+        "of": {
+            "show": false,
+            "label": "O/F ratio",
+            "type": "-"
+        },
+        "isp": {
+            "show": false,
+            "label": "Isp",
+            "type": "time"
+        }
+    }
+}
