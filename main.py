@@ -320,6 +320,8 @@ for element in plot:
 
 ts = np.arange(0, len(plots['port_diameter'])*config['time_step'], config['time_step'])
 
+# I have changed this line ^^
+
 #plot
 for element in plot:
     if(plot[element]['show']):
