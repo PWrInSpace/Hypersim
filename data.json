@@ -18,7 +18,7 @@
     "density": 900
   },
   "nozzle": {
-    "throat": 0.020,
+    "throat": 0.02,
     "exit": 0.050,
     "efficiency": 0.95,
     "div_angle": 12,
@@ -34,7 +34,7 @@
     "time_step": 0.03,
     "ambient_pressure": 101325,
     "cf_eff": 0.95,
-    "pressure_lag": 0,
+    "pressure_lag": 0.1,
     "ox_flow_lag": 0,
     "fuel_flow_lag": 0
   }

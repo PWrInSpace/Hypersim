@@ -237,34 +237,32 @@ ox_flow = 0
 of = 0
 k = propellant['k']
 mod_heat_ratio = math.sqrt(k * math.pow(2/(k+1), (k+1)/(k-1)))
+stuck = 0
+FAULT = []
 
 #temporary
 z = 100*100000
 tank_pressure = 50*100000
 exhoust_pressure = config['ambient_pressure']
-
+pressure_drop = tank_pressure-chamber_pressure
 # ---------------- LOOP ------------------
 
 while fuel_mass > 0:
-
     #basic calculations
     port_area = math.pi/4 * port_diameter**2    # diameter -> area
     pt_ratio = port_area/throat_area            # port to throat area ratio
     if pt_ratio < config['min_pt']:     # sanity check
         warnings.warn("port to throat area ratio is too large (%s), increase port diameter!" %round(pt_ratio, 2))
-    
+        FAULT.append('pt_ratio') 
+
     # oxidizer calculations
     w = config['ox_flow_lag']
-    if tank_pressure-head_pressure >= 0:
-        ox_flow = w*ox_flow + (1-w)*math.sqrt((tank_pressure-head_pressure) / z)
-        ox_flux = ox_flow/port_area
-    else:
-        warnings.warn("Backpressure! Tank pressure: %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
-        ox_flow = w*ox_flow + (1-w)*math.sqrt((head_pressure-tank_pressure) / z)
-        ox_flux = 0
+    ox_flow = w*ox_flow + (1-w)*math.sqrt((pressure_drop) / z)
+    ox_flux = ox_flow/port_area
     if ox_flux > config['max_ox_flux']: # sanity check
         warnings.warn("Oxidizer flux is too large! oxidizer mass flux: %s" %ox_flux)
-    
+        FAULT.append('max_ox_flux')
+
     # fuel calculations
     regression_rate = propellant['a'] * math.pow(ox_flux, propellant['n'])
     w = config['fuel_flow_lag']
@@ -278,22 +276,44 @@ while fuel_mass > 0:
     mass_flux = mass_flow/port_area     # total mass flux
     if mass_flux > config['max_flux']:  # sanity check
         warnings.warn("propellant mass flux is too large! (%s)" %mass_flux)
+        FAULT.append('max_flux')
 
     # pressure calculations
     w = config['pressure_lag']
     old_chamber_pressure = chamber_pressure
     chamber_pressure = (w*chamber_pressure) + (1-w)*(mass_flow*propellant['cstar']/throat_area)
     head_pressure = chamber_pressure * (1 + 0.5 * (1/pt_ratio)**2 * mod_heat_ratio**2)
+    pressure_drop = tank_pressure - head_pressure
+
+    if pressure_drop < 0.000001:    # reality check
+        pressure_drop = 0.000001
+        warnings.warn("Backpressure: run tank pressure %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
+        FAULT.append('backpressure')
+
+    if pressure_drop/chamber_pressure < 0.2:    # safety check
+        warnings.warn("Pressure drop is too low, backpressure is likely to happen: run tank pressure %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
+        FAULT.append('pressure_drop')
+        #break
+
 
     # performance calculations
-    pressure_thrust = expansion_ration * (exhoust_pressure-config['ambient_pressure'])/chamber_pressure
+    pressure_thrust = exit_area * (exhoust_pressure-config['ambient_pressure'])
     cf = config['cf_eff'] * mod_heat_ratio * math.sqrt(math.pow(2/(k+1),(k+1)/(k-1)) * (1- math.pow(exhoust_pressure/chamber_pressure, (k-1)/k)))
+    cf = pressure_thrust/throat_area/chamber_pressure
     thrust = mass_flow * propellant['cstar'] * cf
     isp = thrust/mass_flow/9.81
 
-    print((chamber_pressure-old_chamber_pressure)/config['time_step'])
+    if(abs(pressure_change) > 10000):
+        stuck += 1
+        if stuck > 1000:
+            warnings.warn("Error, infinite loop!")
+            FAULT.append('stuck')
+            break
+    else:
+        stuck = 0
+    print(pressure_change)
 
-    if (chamber_pressure-old_chamber_pressure)/config['time_step'] < 10000:
+    if pressure_change < 10000:
 
         # time step
         port_diameter += regression_rate*config['time_step']    # increase port diameter
@@ -318,7 +338,20 @@ while fuel_mass > 0:
         plots['pressure_thrust'].append(pressure_thrust)
         plots['of'].append(of)
         plots['isp'].append(isp)
-
+        
+# print errors/warnings
+printed = [None]
+exists = False
+for i in FAULT:
+    for i2 in printed:
+        if i == i2:
+            exists = True
+            continue
+    if exists == False:
+        printed.append(i)
+        print("FAULT: ", i)
+    else:
+        exists = False
 
 # unit change
 for element in plot:
@@ -326,7 +359,6 @@ for element in plot:
         plots[element][i] *= unit[units[plot[element]['type']]]
 
 ts = np.arange(0, len(plots['port_diameter'])*config['time_step'], config['time_step'])
-
 
 #plot
 for element in plot:
