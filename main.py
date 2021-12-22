@@ -246,10 +246,6 @@ exhoust_pressure = config['ambient_pressure']
 # ---------------- LOOP ------------------
 
 while fuel_mass > 0:
-    # time step'
-    port_diameter += regression_rate*config['time_step']    # increase port diameter
-    fuel_mass -= fuel_flow*config['time_step']  # burn fuel
-    ox_mass -= ox_flow*config['time_step']  # burn oxidizer
 
     #basic calculations
     port_area = math.pi/4 * port_diameter**2    # diameter -> area
@@ -259,8 +255,13 @@ while fuel_mass > 0:
     
     # oxidizer calculations
     w = config['ox_flow_lag']
-    ox_flow = w*ox_flow + (1-w)*math.sqrt((tank_pressure-head_pressure) / z)
-    ox_flux = ox_flow/port_area
+    if tank_pressure-head_pressure >= 0:
+        ox_flow = w*ox_flow + (1-w)*math.sqrt((tank_pressure-head_pressure) / z)
+        ox_flux = ox_flow/port_area
+    else:
+        warnings.warn("Backpressure! Tank pressure: %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
+        ox_flow = w*ox_flow + (1-w)*math.sqrt((head_pressure-tank_pressure) / z)
+        ox_flux = 0
     if ox_flux > config['max_ox_flux']: # sanity check
         warnings.warn("Oxidizer flux is too large! oxidizer mass flux: %s" %ox_flux)
     
@@ -280,12 +281,9 @@ while fuel_mass > 0:
 
     # pressure calculations
     w = config['pressure_lag']
+    old_chamber_pressure = chamber_pressure
     chamber_pressure = (w*chamber_pressure) + (1-w)*(mass_flow*propellant['cstar']/throat_area)
     head_pressure = chamber_pressure * (1 + 0.5 * (1/pt_ratio)**2 * mod_heat_ratio**2)
-    if head_pressure > tank_pressure:   # sanity check
-        #head_pressure = tank_pressure   # quick correction so the program can go on
-        warnings.warn("Backpressure! Tank pressure: %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
-        break
 
     # performance calculations
     pressure_thrust = expansion_ration * (exhoust_pressure-config['ambient_pressure'])/chamber_pressure
@@ -293,24 +291,33 @@ while fuel_mass > 0:
     thrust = mass_flow * propellant['cstar'] * cf
     isp = thrust/mass_flow/9.81
 
-    # save for plotting
-    plots['chamber_pressure'].append(chamber_pressure)
-    plots['thrust'].append(thrust)
-    plots['ox_mass'].append(ox_mass)
-    plots['fuel_mass'].append(fuel_mass)
-    plots['ox_flow'].append(ox_flow)
-    plots['fuel_flow'].append(fuel_flow)
-    plots['mass_flow'].append(mass_flow)
-    plots['ox_flux'].append(ox_flux)
-    plots['fuel_flux'].append(fuel_flux)
-    plots['mass_flux'].append(mass_flux)
-    plots['regression_rate'].append(regression_rate)
-    plots['port_diameter'].append(port_diameter)
-    plots['exhoust_pressure'].append(exhoust_pressure)
-    plots['cf'].append(cf)
-    plots['pressure_thrust'].append(pressure_thrust)
-    plots['of'].append(of)
-    plots['isp'].append(isp)
+    print((chamber_pressure-old_chamber_pressure)/config['time_step'])
+
+    if (chamber_pressure-old_chamber_pressure)/config['time_step'] < 10000:
+
+        # time step
+        port_diameter += regression_rate*config['time_step']    # increase port diameter
+        fuel_mass -= fuel_flow*config['time_step']  # burn fuel
+        ox_mass -= ox_flow*config['time_step']  # burn oxidizer
+
+        # save for plotting
+        plots['chamber_pressure'].append(chamber_pressure)
+        plots['thrust'].append(thrust)
+        plots['ox_mass'].append(ox_mass)
+        plots['fuel_mass'].append(fuel_mass)
+        plots['ox_flow'].append(ox_flow)
+        plots['fuel_flow'].append(fuel_flow)
+        plots['mass_flow'].append(mass_flow)
+        plots['ox_flux'].append(ox_flux)
+        plots['fuel_flux'].append(fuel_flux)
+        plots['mass_flux'].append(mass_flux)
+        plots['regression_rate'].append(regression_rate)
+        plots['port_diameter'].append(port_diameter)
+        plots['exhoust_pressure'].append(exhoust_pressure)
+        plots['cf'].append(cf)
+        plots['pressure_thrust'].append(pressure_thrust)
+        plots['of'].append(of)
+        plots['isp'].append(isp)
 
 
 # unit change

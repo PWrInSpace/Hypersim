@@ -37,12 +37,12 @@
             "type": "mass"
         },
         "ox_flow": {
-            "show": true,
+            "show": false,
             "label": "Oxidizer flow rate",
             "type": "flow"
         },
         "fuel_flow": {
-            "show": true,
+            "show": false,
             "label": "Fuel flow rate",
             "type": "flow"
         },
