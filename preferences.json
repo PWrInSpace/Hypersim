@@ -1,6 +1,7 @@
 {
     "units": {
         "length": "mm",
+        "temperature": "k",
         "mass": "kg",
         "pressure": "bar",
         "velocity": "m/s",
@@ -20,6 +21,16 @@
             "show": true,
             "label": "Chamber pressure",
             "type": "pressure"
+        },
+        "tank_pressure": {
+            "show": true,
+            "label": "Run tank pressure",
+            "type": "pressure"
+        },
+        "tank_temp": {
+            "show": false,
+            "label": "Run tank temperature",
+            "type": "temperature"
         },
         "thrust": {
             "show": false,

@@ -5,10 +5,17 @@
     "port": 0.040
   },
   "tank": {
-    "volume": null,
+    "volume": 0.003,
     "diameter": 0.140,
     "length": 1.500,
-    "mass": 5.4
+    "mass": 0,
+    "ullage": 0.15,
+    "pressure": 5000000
+  },
+  "injector": {
+    "orfice_diameter": 0.001,
+    "number": 10,
+    "loss_coef": 2
   },
   "propellant": {
     "a": 0.0001146,
@@ -33,8 +40,9 @@
     "max_flux": 1400,
     "time_step": 0.03,
     "ambient_pressure": 101325,
+    "ambient_temp": 300,
     "cf_eff": 0.95,
-    "pressure_lag": 0.1,
+    "pressure_lag": 0,
     "ox_flow_lag": 0,
     "fuel_flow_lag": 0
   }
