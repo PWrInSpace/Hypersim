@@ -3,6 +3,13 @@ import math
 import json
 import warnings
 import matplotlib.pyplot as plt
+from nitrous_oxide import *
+
+# load user preferences
+with open('preferences.json', 'r') as f:
+    data = json.load(f)
+units = data['units']
+plot = data['plot']
 
 # unit conversion
 unit = {
@@ -103,8 +110,15 @@ plots = {
 
 # functions
 def Unit(value, type):
+
+    """Tranforms given value to ISO units
+    Aruments:
+        - value - value of the measure
+        - type - unit of the value
+    Return:
+        - value in ISO units"""
+
     if type == 'temperature':
         return unit[units[type]]+value
     else:
         return unit[units[type]]*value
-

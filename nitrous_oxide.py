@@ -57,7 +57,7 @@ def _nox_v_rho(T_Kelvin):
     rab = (1.0 / Tr) - 1.0
     shona = 0.0
     for i in range(5):
-        shona += b[i] * pow(rab, ((i+1) / 3.0))
+        shona += b[i] * np.power(rab, ((i+1) / 3.0))
         bob = rho_crit * np.exp(shona)
     return bob
 nox_v_rho = np.vectorize(_nox_v_rho)
@@ -76,8 +76,8 @@ def _nox_enth_v(T_Kelvin):
     shona_v = b_v[0]
 
     for i in range(5):
-        shona_l += b_l[i] * pow(rab, (i / 3.0))  # saturated liquid enthalpy
-        shona_v += b_v[i] * pow(rab, (i / 3.0))  # saturated vapour enthalpy
+        shona_l += b_l[i] * np.power(rab, (i / 3.0))  # saturated liquid enthalpy
+        shona_v += b_v[i] * np.power(rab, (i / 3.0))  # saturated vapour enthalpy
 
     bob = (shona_v - shona_l) * 1000.0  #net during change from liquid to vapour
     return bob
@@ -114,9 +114,9 @@ def _nox_temp(pressure):
             rab = 1-Tr
             shona = 0
             for i in range(4):
-                shona += b[i] * np.pow(rab,p[i])
+                shona += b[i] * np.power(rab,p[i])
             pp_guess = p_crit * np.exp(shona/Tr)
-            if (pp_guess - pressure) * np.sgn(step) >= 0:
+            if (pp_guess - pressure) * np.sign(step) >= 0:
                 break
         step = step/(-2)
         if abs(pp_guess - pressure) <= 0.01:
