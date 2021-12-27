@@ -19,14 +19,14 @@
   },
   "propellant": {
     "a": 0.0001146,
-    "n": 0.5036,
+    "n": 0.4036,
     "k": 1.3,
     "cstar": 2000,
     "density": 900
   },
   "nozzle": {
     "throat": 0.02,
-    "exit": 0.050,
+    "exit": 0.05,
     "efficiency": 0.95,
     "div_angle": 12,
     "con_angle": 30,
