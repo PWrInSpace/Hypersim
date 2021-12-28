@@ -11,6 +11,16 @@ with open('preferences.json', 'r') as f:
 units = data['units']
 plot = data['plot']
 
+# load model data
+with open("data.json", 'r') as f:
+    data = json.load(f)
+grain = data['grain']
+propellant = data['propellant']
+nozzle = data['nozzle']
+tank = data['tank']
+injector = data['injector']
+config = data['config']
+
 # unit conversion
 unit = {
     #length
@@ -122,3 +132,63 @@ def Unit(value, type):
         return unit[units[type]]+value
     else:
         return unit[units[type]]*value
+        
+
+def integrate_mass_flowrate(ox_flow, old_ox_flow):
+    """Intregration of oxidizer mass flowrate using 2nd order Adam's integration formula
+    Arguments:
+        - ox_flow - oxidier flow
+        - old_ox_flow - old oxodizer flow
+    Return:
+        - delta_ox - numerical approximation of the integral"""
+
+    delta_ox = 0.5*config['time_step']*(3*ox_flow-old_ox_flow)
+    return delta_ox
+
+
+def linear_interpolation(x, x1, y1, x2, y2):
+    """Extrapolate the y value for postition x on 
+    line created by points x1, y1, x2, y2.
+    Arguments:
+        - x - point to extrapolate the value of
+        - x1 - minimum x bound
+        - y1 - value of x1
+        - x2 - maximum x bound
+        - y2 - value of x2
+    Return:
+        - y - the extrapolated value"""
+
+    if x1 < x2 and (x <= x1 or x >= x2):
+        if x <= x1:
+            return y1
+        else:
+            return y2
+    
+    elif x1 > x2 and (x >= x1 or x <= x2):
+        if x >= x1:
+            return y1
+        else:
+            return y2
+    
+    else:
+        a = (y2 - y1)/(x2 - x1)
+        b = y1 - a * x1
+        y = a * x + b
+        return y
+
+
+def compress_factor(p, p_crit, z_crit):
+    """Calculate compressibility factor of subctritical vapour on 
+    the saturation line.
+    Arguments:
+        - p - pressure
+        - p_crit - critical pressure
+        - z_crit - critical compressibility factor
+    Return:
+        - z - compressibility factor"""
+
+    p = abs(p)
+    z = linear_interpolation(p, 0, 1, p_crit, z_crit) # ? Dlaczego 0, 1? Czy to będzie w ogóle działać?
+
+    return z
+

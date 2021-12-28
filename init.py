@@ -1,18 +1,8 @@
 from numpy.core.numeric import array_equal
 from funs import *
 
+
 #----------- INIT ---------------
-
-# load model data
-with open("data.json", 'r') as f:
-    data = json.load(f)
-grain = data['grain']
-propellant = data['propellant']
-nozzle = data['nozzle']
-tank = data['tank']
-injector = data['injector']
-config = data['config']
-
 
 # calculate initial values
 

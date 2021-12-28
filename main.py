@@ -12,6 +12,61 @@ TODO:
     - wszystko co po '# @' usuwamy przed publikacją
 """
 
+## Comparison of our and Aspirespace's variables
+    # @ old_ox_flow = Omdot_tank_outflow
+    # @ ox_flow = mdot_tank_outflow
+    # @ enth_v -> Enth_of_vap 
+    # @ heat_capacity -> Spec_heat_cap
+    # @ heat_removed -> deltaQ
+    # @ old_vapourised_mass -> vapourised_mass_old
+    # @ temp_drop -> deltaTemp
+    # @ liquid mass -> hybrid.tank_liquid_mass
+    # @ tank_temp hybrid.tank_fluid_temperature_K
+    # @ liquid_density -> hybrid.tank_liquid_density
+    # @ vapour_density -> hybrid.tank_vapour_density
+    # @ tank pressure -> hybrid.tank_pressure_bar
+    # @ d_loss -> hybrid.injector_loss_coefficent
+    # @ delta_ox -> delta_outflow_mass
+    # @ config['time_step'] -> delta_time
+    # @ ox_flow -> mdot_tank_outflow
+    # @ old_ox_flow -> Omdot_tank_outflaw
+    # @ ox_mass -> hybrid.tank_propellant_cintents_mass
+    # @ old_liquid_mass -> old_liquid_nox_mass
+    # @ liquid_mass -> hybrid.tank_liquid_mass
+    # @ tank['volume'] -> hybrid.tank_volume
+    # @ vapour_mass -> hybrid.tank_vapour_mass
+    # @ old_vapourised_mass -> vapourised_mass_old
+    # @ p - P_bar_abs
+
+
+## FFunctions - necessary to be in the main - inherit from main loop
+
+def injector_flow(tank_pressure, head_pressure, density=liquid_density):
+    """Calculate mass flow rate out of the injector and perform a reality check and safety check.
+    Arguments:
+        - tank_pressure - pressure inside the tank
+        - head_pressure - # ?
+    Return:
+        - ox_flow - liquid flowrate through the injector based 
+        on the pressure drop and d_loss between the run-tank and combustion chamber
+        """
+
+    pressure_drop = tank_pressure - head_pressure
+
+    if pressure_drop < 0.000001:    # reality check
+        pressure_drop = 0.000001
+        warnings.warn("Backpressure: run tank pressure %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
+        FAULT.append('backpressure')
+
+    if pressure_drop/chamber_pressure < 0.2:    # safety check
+        warnings.warn("Pressure drop is too low, backpressure is likely to happen: run tank pressure %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
+        FAULT.append('pressure_drop')
+        #break
+
+    ox_flow = math.sqrt(2*density*pressure_drop/d_loss)
+
+    return ox_flow
+
 
 # ---------------- LOOP ------------------
 
@@ -38,20 +93,13 @@ while fuel_mass > 0 and liquid_mass > 0:
             - temp_drop - drop in temperature caused by removed heat
             - tank_temp - update after temp_drop"""
 
-    # @ old_ox_flow = Omdot_tank_outflow
-    # @ ox_flow = mdot_tank_outflow
+
     old_ox_flow = ox_flow 
-    # @ enth_v -> Enth_of_vap  
+     
     enth_v = float(nox_enth_v(tank_temp))         # entalphy of vapourisation
-    # @ heat_capacity -> Spec_heat_cap
     heat_capacity = nox_l_Cp(tank_temp)    # liquid heat capacity
-    # @ heat_removed -> deltaQ
-    # @ old_vapourised_mass -> vapourised_mass_old
     heat_removed = old_vapourised_mass*enth_v
-    # @ temp_drop -> deltaTemp
-    # @ liquid mass -> hybrid.tank_liquid_mass
     temp_drop = -(heat_removed/(liquid_mass*heat_capacity))
-    # @ tank_temp hybrid.tank_fluid_temperature_K
     tank_temp += temp_drop
 
     # reality check
@@ -66,56 +114,30 @@ while fuel_mass > 0 and liquid_mass > 0:
         FAULT.append['supercritical']
 
     """Update nitrous properties after temperature changed"""
-    # @ liquid_density -> hybrid.tank_liquid_density
+
     liquid_density = nox_l_rho(tank_temp)
-    # @ vapour_density -> hybrid.tank_vapour_density
     vapour_density = nox_v_rho(tank_temp)
-    # @ tank pressure -> hybrid.tank_pressure_bar
     tank_pressure = float(nox_vp(tank_temp))
-    # @ pressure_drop -> pressure_drop
-    pressure_drop = tank_pressure - head_pressure
 
-
-    """Check if backpressure is happening of likely to happen"""
-    if pressure_drop < 0.000001:    # reality check
-        pressure_drop = 0.000001
-        warnings.warn("Backpressure: run tank pressure %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
-        FAULT.append('backpressure')
-
-    if pressure_drop/chamber_pressure < 0.2:    # safety check
-        warnings.warn("Pressure drop is too low, backpressure is likely to happen: run tank pressure %s %s | head pressure: %s %s" %(round(Unit(tank_pressure, 'pressure'),2), units['pressure'], round(Unit(head_pressure, 'pressure'),2), units['pressure']))
-        FAULT.append('pressure_drop')
-        #break
 
     """Calculate
-        - ox_flow - liquid flowrate through the injector based 
-        on the pressure drop and d_loss between the run-tank and combustion chamber
         - delta_ox  - integral of the difference between old and new ox_flow calculated using 2nd 
         order adams integration.
         - ox_mass - update by extracting delta_ox
         - liquid mass - current mass of the liquid nitrous
         - vapour_mass - update vapour mass"""
-    # @ d_loss -> hybrid.injector_loss_coefficent
-    ox_flow = math.sqrt(2*liquid_density*pressure_drop/d_loss)
-    # @ delta_ox -> delta_outflow_mass
-    # @ config['time_step'] -> delta_time
-    # @ ox_flow -> mdot_tank_outflow
-    # @ old_ox_flow -> Omdot_tank_outflaw
-    delta_ox = 0.5*config['time_step']*(3*ox_flow-old_ox_flow)  # 2nd order adams integration
-    # @ ox_mass -> hybrid.tank_propellant_cintents_mass
+
+
+    ox_flow = injector_flow(tank_pressure, head_pressure)
+    delta_ox = integrate_mass_flowrate(ox_flow, old_ox_flow)  # 2nd order adams integration
     ox_mass -= delta_ox
-    # @ old_liquid_mass -> old_liquid_nox_mass
     old_liquid_mass -= delta_ox
     bob = (1/liquid_density) - (1/vapour_density)
-    # @ liquid_mass -> hybrid.tank_liquid_mass
-    # @ tank['volume'] -> hybrid.tank_volume
     liquid_mass = (tank['volume']-(ox_mass/vapour_density))/bob
-    # @ vapour_mass -> hybrid.tank_vapour_mass
     vapour_mass = ox_mass-liquid_mass # ? czy nie wychodzi na to samo - vapour mass i bob ? 
     bob = old_liquid_mass-liquid_mass
     tc = config['time_step']/0.15
     lagged_bob = tc*(bob-lagged_bob) + lagged_bob # first order time lag to help with numerical stability
-    # @ old_vapourised_mass -> vapourised_mass_old
     old_vapourised_mass = lagged_bob
 
     """Check if there is liquid nitrous left"""
@@ -177,6 +199,7 @@ while fuel_mass > 0 and liquid_mass > 0:
         - isp - specific impulse"""
     pressure_thrust = exit_area * (exhoust_pressure-config['ambient_pressure'])
     cf = config['cf_eff'] * mod_heat_ratio * np.sqrt(np.power(2/(k+1),(k+1)/(k-1)) * (1- np.power(exhoust_pressure/chamber_pressure, (k-1)/k)))
+
     cf = pressure_thrust/throat_area/chamber_pressure
     thrust = mass_flow * propellant['cstar'] * cf
     isp = thrust/mass_flow/9.81
@@ -201,25 +224,8 @@ while fuel_mass > 0 and liquid_mass > 0:
         ox_mass -= ox_flow*config['time_step']  # burn oxidizer
 
         # save for plotting
-        plots['chamber_pressure'].append(chamber_pressure)
-        plots['tank_pressure'].append(tank_pressure)
-        plots['tank_temp'].append(tank_temp)
-        plots['thrust'].append(thrust)
-        plots['ox_mass'].append(ox_mass)
-        plots['fuel_mass'].append(fuel_mass)
-        plots['ox_flow'].append(ox_flow)
-        plots['fuel_flow'].append(fuel_flow)
-        plots['mass_flow'].append(mass_flow)
-        plots['ox_flux'].append(ox_flux)
-        plots['fuel_flux'].append(fuel_flux)
-        plots['mass_flux'].append(mass_flux)
-        plots['regression_rate'].append(regression_rate)
-        plots['port_diameter'].append(port_diameter)
-        plots['exhoust_pressure'].append(exhoust_pressure)
-        plots['cf'].append(cf)
-        plots['pressure_thrust'].append(pressure_thrust)
-        plots['of'].append(of)
-        plots['isp'].append(isp)
+        for key in plots.keys():
+            plots[key].append(globals()[key])
         
 # print errors/warnings
 printed = [None]
@@ -235,12 +241,13 @@ for i in FAULT:
     else:
         exists = False
 
-# unit change
+#unit change
 for element in plot:
     for i in range(len(plots[element])):
         plots[element][i] = Unit(plots[element][i], plot[element]['type'])
 
-ts = np.arange(0, len(plots['port_diameter'])*config['time_step'] - config['time_step'], config['time_step'])
+ts = np.arange(0, len(plots['port_diameter'])*config['time_step'], config['time_step'])
+
 
 print(len(ts))
 #plot
@@ -249,3 +256,73 @@ for element in plot:
         plt.plot(ts, plots[element], label = plot[element]['label'] + " - " + units[plot[element]['type']])
 plt.legend()
 plt.show()
+
+
+## Vapour faze
+
+first = True
+
+while vapour_mass > 0:
+
+    # probably best to move the if before while
+    if  first:
+        # initial conditions
+        init_vapour_temp = tank_temp
+        init_vapour_mass = vapour_mass
+        init_vapour_pressure = tank_pressure
+        init_vapour_density = vapour_density
+
+        init_Z = compress_factor(init_vapour_pressure, p_crit, z_crit)
+        old_ox_flow = 0 #reset
+        first = False
+
+    ox_flow = injector_flow(tank_pressure, head_pressure, denisty=vapour_density)
+    delta_ox = integrate_mass_flowrate(ox_flow, old_ox_flow)
+    ox_mass -= delta_ox
+    vapour_mass -= delta_ox
+
+    #Guessing of Z
+
+    current_z_guess = compress_factor(tank_pressure, p_crit, z_crit) #initial guess
+    step = 1/0.9 #initial step size
+    old_aim = 2
+    aim = 0
+    current_z = current_z_guess*2
+
+    while current_z_guess/current_z > (1 + 10**(-6)) or  current_z_guess/current_z < 1/(1 + 10**(-6)):
+        tmp = k - 1
+        vapour_temp = init_vapour_temp * np.power(vapour_mass * current_z_guess\
+            /(init_vapour_mass * init_Z), tmp)
+        tmp = k/(k -1)
+        tank_pressure = init_vapour_pressure * np.power(vapour_temp/init_vapour_temp, tmp)
+        current_z = compress_factor(tank_pressure, p_crit, z_crit)
+
+        old_aim = aim
+
+        if current_z_guess < current_z: #Z guessed is to little
+            current_z_guess *= step 
+            aim = 1
+        else:
+            current_z_guess /= step #Z guessed is to large
+            aim = -1
+
+        if aim == -old_aim: #if the target is overshoot reduce step so not to create inifite loop
+            step = np.sqrt(step)
+    
+    # Nor sure if this part should be in while but is not used so i leave it after it
+
+    tmp = 1/(k - 1)
+    vapour_denisty = init_vapour_density * np.power(vapour_temp/init_vapour_temp, tmp)
+
+
+
+
+
+    
+
+
+    
+
+    
+
+
