@@ -132,7 +132,7 @@ def Unit(value, type):
         return unit[units[type]]+value
     else:
         return unit[units[type]]*value
-        
+
 
 def integrate_mass_flowrate(ox_flow, old_ox_flow):
     """Intregration of oxidizer mass flowrate using 2nd order Adam's integration formula
@@ -188,7 +188,7 @@ def compress_factor(p, p_crit, z_crit):
         - z - compressibility factor"""
 
     p = abs(p)
-    z = linear_interpolation(p, 0, 1, p_crit, z_crit) # ? Dlaczego 0, 1? Czy to będzie w ogóle działać?
+    z = linear_interpolation(p, 0, 1, p_crit, z_crit)
 
     return z
 

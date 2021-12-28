@@ -26,7 +26,9 @@ def _nox_vp(T_Kelvin):
 
     bob = 72.51 * np.exp(shona/Tr) * 100000 #bar to Pa
     return bob
+
 nox_vp = np.vectorize(_nox_vp)
+
 
 def _nox_l_rho(T_Kelvin):
     """Calculate saturated liquid density of nitrous oxide
@@ -43,7 +45,9 @@ def _nox_l_rho(T_Kelvin):
         shona += b[i] * np.power(rab, ((i + 1) / 3.0))
     bob = rho_crit * np.exp(shona)
     return bob
+
 nox_l_rho = np.vectorize(_nox_l_rho)
+
 
 def _nox_v_rho(T_Kelvin):
     """Calculate saturated vapour density of nitrous oxide
@@ -60,7 +64,10 @@ def _nox_v_rho(T_Kelvin):
         shona += b[i] * np.power(rab, ((i+1) / 3.0))
         bob = rho_crit * np.exp(shona)
     return bob
+
+
 nox_v_rho = np.vectorize(_nox_v_rho)
+
 
 def _nox_enth_v(T_Kelvin):
     """Calculate nitrous liquid enthalpy (latent heat) of vaporisation, J/kg
@@ -81,7 +88,10 @@ def _nox_enth_v(T_Kelvin):
 
     bob = (shona_v - shona_l) * 1000.0  #net during change from liquid to vapour
     return bob
+
+
 nox_enth_v = np.vectorize(_nox_enth_v)
+
 
 def _nox_l_Cp(T_Kelvin):
     """Calculate Nitrous saturated liquid isobaric heat capacity, J/kg K
@@ -122,4 +132,5 @@ def _nox_temp(pressure):
         if abs(pp_guess - pressure) <= 0.01:
             break
     return T
+    
 nox_temp = np.vectorize(_nox_temp)

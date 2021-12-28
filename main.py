@@ -45,7 +45,7 @@ def injector_flow(tank_pressure, head_pressure, density=liquid_density):
     """Calculate mass flow rate out of the injector and perform a reality check and safety check.
     Arguments:
         - tank_pressure - pressure inside the tank
-        - head_pressure - # ?
+        - head_pressure - pressure inside comubstion chamber immidietly after injector
     Return:
         - ox_flow - liquid flowrate through the injector based 
         on the pressure drop and d_loss between the run-tank and combustion chamber
@@ -84,7 +84,7 @@ while fuel_mass > 0 and liquid_mass > 0:
         FAULT.append('pt_ratio') 
 
     
-    lagged_bob = 0
+    lagged_tmp = 0
     """Init:
             - old_ox_flow - old oxidizer flow as current oxidizer flow
             - enth_v - current enthalpy of nitrous vapour
@@ -132,13 +132,13 @@ while fuel_mass > 0 and liquid_mass > 0:
     delta_ox = integrate_mass_flowrate(ox_flow, old_ox_flow)  # 2nd order adams integration
     ox_mass -= delta_ox
     old_liquid_mass -= delta_ox
-    bob = (1/liquid_density) - (1/vapour_density)
-    liquid_mass = (tank['volume']-(ox_mass/vapour_density))/bob
-    vapour_mass = ox_mass-liquid_mass # ? czy nie wychodzi na to samo - vapour mass i bob ? 
-    bob = old_liquid_mass-liquid_mass
+    tmp = (1/liquid_density) - (1/vapour_density)
+    liquid_mass = (tank['volume']-(ox_mass/vapour_density))/tmp
+    vapour_mass = ox_mass-liquid_mass  
+    tmp = old_liquid_mass-liquid_mass
     tc = config['time_step']/0.15
-    lagged_bob = tc*(bob-lagged_bob) + lagged_bob # first order time lag to help with numerical stability
-    old_vapourised_mass = lagged_bob
+    lagged_tmp = tc*(tmp-lagged_tmp) + lagged_tmp # first order time lag to help with numerical stability
+    old_vapourised_mass = lagged_tmp
 
     """Check if there is liquid nitrous left"""
     if liquid_mass > old_liquid_mass:
@@ -260,21 +260,17 @@ plt.show()
 
 ## Vapour faze
 
-first = True
+# initial conditions
+init_vapour_temp = tank_temp
+init_vapour_mass = vapour_mass
+init_vapour_pressure = tank_pressure
+init_vapour_density = vapour_density
+
+init_Z = compress_factor(init_vapour_pressure, p_crit, z_crit)
+old_ox_flow = 0 #reset
+first = False
 
 while vapour_mass > 0:
-
-    # probably best to move the if before while
-    if  first:
-        # initial conditions
-        init_vapour_temp = tank_temp
-        init_vapour_mass = vapour_mass
-        init_vapour_pressure = tank_pressure
-        init_vapour_density = vapour_density
-
-        init_Z = compress_factor(init_vapour_pressure, p_crit, z_crit)
-        old_ox_flow = 0 #reset
-        first = False
 
     ox_flow = injector_flow(tank_pressure, head_pressure, denisty=vapour_density)
     delta_ox = integrate_mass_flowrate(ox_flow, old_ox_flow)
@@ -288,8 +284,9 @@ while vapour_mass > 0:
     old_aim = 2
     aim = 0
     current_z = current_z_guess*2
+    go = True
 
-    while current_z_guess/current_z > (1 + 10**(-6)) or  current_z_guess/current_z < 1/(1 + 10**(-6)):
+    while go:
         tmp = k - 1
         vapour_temp = init_vapour_temp * np.power(vapour_mass * current_z_guess\
             /(init_vapour_mass * init_Z), tmp)
@@ -309,6 +306,10 @@ while vapour_mass > 0:
         if aim == -old_aim: #if the target is overshoot reduce step so not to create inifite loop
             step = np.sqrt(step)
     
+        if current_z_guess/current_z > (1 + 10**(-6)) or  current_z_guess/current_z < 1/(1 + 10**(-6)):
+            pass
+        else:
+            go = False
     # Nor sure if this part should be in while but is not used so i leave it after it
 
     tmp = 1/(k - 1)
