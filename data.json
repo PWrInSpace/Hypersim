@@ -38,7 +38,7 @@
     "min_pt": 2,
     "max_ox_flux": 1000,
     "max_flux": 1400,
-    "time_step": 0.03,
+    "time_step": 0.01,
     "ambient_pressure": 101325,
     "ambient_temp": 300,
     "cf_eff": 0.95,

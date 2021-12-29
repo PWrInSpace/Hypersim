@@ -192,3 +192,14 @@ def compress_factor(p, p_crit, z_crit):
 
     return z
 
+def tank_temp_reality_check(tank_temp, FAULT):
+    """Check if the temperature is at reasonable value"""
+    if tank_temp < 183:
+        warnings.warn("tank temperature too low! %s %s" %(round(tank_temp-273.15, 2), "C"))
+        tank_temp = 183
+        FAULT.append['low_ox_temp']
+    if tank_temp > 309:
+        warnings.warn("nitrous supercritical! %s %s" %(round(tank_temp-273.15, 2), "C"))
+        tank_temp = 309
+        FAULT.append['supercritical']
+
