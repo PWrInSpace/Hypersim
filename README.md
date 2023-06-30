@@ -1,2 +1,2 @@
 # PoliHybrid
- by Sebastian Król & Joanna Puciłowska
+ by Kacper Kowalski & Sebastian Król & Joanna Puciłowska
